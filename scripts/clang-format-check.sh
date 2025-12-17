@@ -1,37 +1,43 @@
 #!/bin/bash
 # Clang Format Check Script
-# Usage: ./clang-format-check.sh <directory> <style>
 
-# 引数が指定されていない場合はエラー
-if [ -z "$1" ]; then
-  echo "Error: No directory specified."
-  exit 1
+TARGET_DIR="$1"
+STYLE_ARG="$2"
+
+# 引数がない場合はカレントディレクトリ
+if [ -z "$TARGET_DIR" ]; then
+  TARGET_DIR="."
 fi
 
-DIRECTORY="$1"
-STYLE="$2" # 事前に渡されたスタイル (デフォルトはGoogle)
-
-# .clang-formatファイルがプロジェクトルートに存在するか確認
+# スタイルの決定
 if [ -f ".clang-format" ]; then
-  echo "Found .clang-format file. Ignoring provided style and using .clang-format."
-  STYLE=""  # .clang-formatを使用するため、style変数を空に設定
+  echo "ℹ️  Found .clang-format file. Using configuration from file."
+  STYLE_FLAG="--style=file"
 else
-  echo "No .clang-format file found. Using style: $STYLE"
+  if [ -z "$STYLE_ARG" ] || [ "$STYLE_ARG" = "file" ]; then
+     STYLE_ARG="Google"
+  fi
+  echo "ℹ️  No .clang-format file found. Using style: $STYLE_ARG"
+  STYLE_FLAG="--style=$STYLE_ARG"
 fi
 
-# 対象とするファイル拡張子
-EXTENSIONS="*.cpp *.h *.hpp"
+echo "🔍 Checking formatting in: $TARGET_DIR"
 
-# 対象ファイルを検索してclang-formatを適用
-for EXT in $EXTENSIONS; do
-  find "$DIRECTORY" -type f -name "$EXT" -exec clang-format --style="$STYLE" --dry-run --Werror {} +
-done
+output=$(find "$TARGET_DIR" \
+  -type d \( -name ".git" -o -name "build" -o -name "node_modules" -o -name "target" \) -prune \
+  -o \
+  -type f \( -name "*.cpp" -o -name "*.h" -o -name "*.hpp" -o -name "*.c" -o -name "*.cc" -o -name "*.cxx" \) \
+  -exec clang-format $STYLE_FLAG --dry-run --Werror {} + 2>&1)
 
-# ステータス確認
-if [ $? -eq 0 ]; then
-  echo "All files in $DIRECTORY are correctly formatted."
+EXIT_CODE=$?
+
+if [ $EXIT_CODE -eq 0 ]; then
+  echo "✅ All files are correctly formatted."
   exit 0
 else
-  echo "Formatting errors found in $DIRECTORY."
+  echo "❌ Formatting errors found:"
+  echo "$output"
+  echo ""
+  echo "::error::Code formatting issues found. Please run clang-format locally."
   exit 1
 fi
