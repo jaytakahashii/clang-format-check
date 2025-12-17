@@ -4,17 +4,17 @@ author: jaytakahashii
 
 inputs:
   path:
-    description: "Directory to check for C++ files"
-    required: true
-    default: "src"
-  style:
-    description: "Clang format style (e.g., Google, LLVM, etc.)"
+    description: "Directory to check for C++ files (default is root '.')"
     required: false
-    default: "Google"
+    default: "."
+  style:
+    description: "Clang format style (e.g., Google, LLVM, file)"
+    required: false
+    default: "file"
 
 runs:
   using: "docker"
-  image: "docker://ghcr.io/jaytakahashii/clang-format-check:latest"
+  image: "Dockerfile"
   args:
     - ${{ inputs.path }}
     - ${{ inputs.style }}
